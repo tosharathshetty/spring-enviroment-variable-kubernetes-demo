@@ -1,0 +1,103 @@
+#echo -n 'c2hhcmF0aA==' | base64 --decode
+#echo -n 'sharath' | base64 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jdbc-properties
+  namespace: spring
+data:
+  jdbc_driverClassName: "org.firebirdsql.jdbc.FBDriver-overridden"
+  jdbc_url: "jdbc:firebirdsql:10.130.15.4:y:/db/va_new.gdb"
+  jdbc_username: "sysdba"
+  jdbc_password: "masterkey"
+  image_jdbc_driverClassName: "org.firebirdsql.jdbc.FBDriver"
+  image_jdbc_url: "jdbc:firebirdsql:10.130.15.4:y:/db/va_images.gdb"
+  image_jdbc_username: "MSelfServ"
+  image_jdbc_password: "MB!$+srv"
+  access_jdbc_driverClassName: "org.firebirdsql.jdbc.FBDriver"
+  access_jdbc_url: "jdbc:firebirdsql:10.130.15.4:y:/db/va_club_access.gdb"
+  access_jdbc_username: "sysdba"
+  access_jdbc_password: "masterkey"
+  
+---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: mongodb
+#   namespace: spring
+# type: Opaque
+# data:
+#   database-password: c2hhcmF0aA==
+#   database-user: c2hhcmF0aA==
+#   database-port: MjcwMTc=
+#   database-host: MTcyLjMwLjIzOC4xOTU=  
+
+# ---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "sample-spring-boot-on-kubernetes-deployment"
+  namespace: spring
+spec:
+  selector:
+    matchLabels:
+      app: sample-spring-boot-on-kubernetes
+  template:
+    metadata:
+      # annotations:
+        # prometheus.io/path: /actuator/prometheus
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "8080"
+      labels:
+        app: sample-spring-boot-on-kubernetes
+    spec:
+      containers:
+      - name: sample-spring-boot-on-kubernetes
+        image: tosharathshetty/sample-spring-boot-on-kubernetes:latest
+        ports:
+        - containerPort: 8080
+        env:
+          - name: JDBC_DRIVERCLASSNAME
+            valueFrom:
+              configMapKeyRef:
+                name: jdbc-properties
+                key: jdbc_driverClassName
+          - name: JDBC_URL
+            valueFrom:
+              configMapKeyRef:
+                name: jdbc-properties
+                key: jdbc_url
+          # - name: MONGO_USERNAME
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: mongodb
+          #       key: database-user
+          # - name: MONGO_PASSWORD
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: mongodb
+          #       key: database-password
+          # - name: MONGO_PORT
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: mongodb
+          #       key: database-port
+          # - name: MONGO_HOST
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: mongodb
+          #       key: database-host
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-spring-boot-on-kubernetes-service
+  namespace: spring
+spec:
+  type: NodePort
+  selector:
+    app: sample-spring-boot-on-kubernetes
+  ports:
+  - port: 8080
